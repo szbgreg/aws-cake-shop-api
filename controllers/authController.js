@@ -1,5 +1,6 @@
 const { query } = require("../modules/db");
 const { genPassword } = require("../modules/auth");
+const jwt = require("jsonwebtoken");
 
 class AuthController {
   async login(req, res) {
@@ -9,7 +10,7 @@ class AuthController {
       if (!username || !password) {
         return res.status(400).json({
           error: "Hiányzó adatok",
-          message: "Felhasználónév és jelszó megadása kötelező",
+          message: "Felhasználónév és jelszó megadása kötelező"
         });
       }
 
@@ -20,25 +21,38 @@ class AuthController {
       `;
 
       const users = await query(sql);
-
+      
       if (users.length === 1) {
         const user = users[0];
-        delete user.hash;
-
+        
+        // JWT token generálása
+        const token = jwt.sign(
+          { 
+            userId: user.id, 
+            username: user.username,
+            isAdmin: user.isAdmin 
+          },
+          process.env.JWT_SECRET || 'your_fallback_secret_key',
+          { expiresIn: '24h' }
+        );
+        
+        delete user.hash; // Jelszó hash eltávolítása
+        
         res.json({
           message: "Sikeres bejelentkezés",
           user: user,
+          token: token
         });
       } else {
         res.status(401).json({
-          error: "Hibás felhasználónév vagy jelszó!",
+          error: "Hibás felhasználónév vagy jelszó!"
         });
       }
     } catch (error) {
       console.error("Bejelentkezési hiba:", error);
       res.status(500).json({
         error: "Hiba történt a bejelentkezés során!",
-        message: error.message,
+        message: error.message
       });
     }
   }
@@ -63,17 +77,18 @@ class AuthController {
       if (Object.keys(errors).length > 0) {
         return res.status(400).json({
           error: "Validációs hibák",
-          errors: errors,
+          errors: errors
         });
       }
 
+      // Ellenőrizzük, hogy létezik-e már a felhasználónév
       const existingUser = await query(
         `SELECT * FROM users WHERE username = '${username}'`
       );
 
       if (existingUser.length > 0) {
         return res.status(409).json({
-          error: "Ez a felhasználónév már foglalt!",
+          error: "Ez a felhasználónév már foglalt!"
         });
       }
 
@@ -85,13 +100,14 @@ class AuthController {
 
       res.status(201).json({
         message: "Sikeres regisztráció!",
-        userId: result.insertId,
+        userId: result.insertId
       });
+
     } catch (error) {
       console.error("Regisztrációs hiba:", error);
       res.status(500).json({
         error: "Hiba történt a regisztráció során!",
-        message: error.message,
+        message: error.message
       });
     }
   }
@@ -99,14 +115,39 @@ class AuthController {
   async getAllUsers(req, res) {
     try {
       const users = await query("SELECT id, username, isAdmin FROM users");
-
+      
       res.json({
-        users: users,
+        users: users
       });
     } catch (error) {
       res.status(500).json({
         error: "Hiba történt a felhasználók lekérése során!",
-        message: error.message,
+        message: error.message
+      });
+    }
+  }
+
+    async getUserForEdit(req, res) {
+    try {
+      const userId = req.params.id;
+
+      const users = await query(
+        `SELECT id, username, isAdmin FROM users WHERE id = '${userId}'`
+      );
+
+      if (users.length === 0) {
+        return res.status(404).json({
+          error: "Felhasználó nem található"
+        });
+      }
+
+      res.json({
+        user: users[0]
+      });
+    } catch (error) {
+      res.status(500).json({
+        error: "Hiba történt a felhasználó lekérése során!",
+        message: error.message
       });
     }
   }
@@ -120,12 +161,12 @@ class AuthController {
       await query(mysqlQuery);
 
       res.json({
-        message: "A felhasználó sikeresen frissítve lett!",
+        message: "A felhasználó sikeresen frissítve lett!"
       });
     } catch (error) {
       res.status(500).json({
         error: "Hiba történt a felhasználó frissítése során!",
-        message: error.message,
+        message: error.message
       });
     }
   }

@@ -1,9 +1,10 @@
 const { query } = require("../modules/db");
 
+// API CakesController frissítés
 class CakesController {
   async getAllCakes(req, res) {
     try {
-      const page = parseInt(req.query.oldal) || 1;
+      const page = parseInt(req.query.oldal) || 1; // oldal paraméter használata
       const limit = 15;
       const offset = (page - 1) * limit;
 
@@ -39,6 +40,7 @@ class CakesController {
         },
       });
     } catch (error) {
+      console.log('CakesController error:', error);
       res.status(500).json({
         error: "Hiba a sütik lekérdezésekor",
         message: error.message,
