@@ -3,26 +3,12 @@ const { query } = require("../modules/db");
 class MessagesController {
   async getAllMessages(req, res) {
     try {
-      const page = parseInt(req.query.oldal) || 1;
-      const limit = 15;
-      const offset = (page - 1) * limit;
-
-      const totalResult = await query(`SELECT COUNT(*) AS count FROM messages`);
-      const total = totalResult[0].count;
-      const totalPages = Math.ceil(total / limit);
-
       const messages = await query(
-        `SELECT * FROM messages ORDER BY created_at DESC LIMIT ${limit} OFFSET ${offset}`
+        `SELECT * FROM messages ORDER BY created_at DESC`
       );
 
       res.json({
         messages: messages,
-        pagination: {
-          currentPage: page,
-          totalPages: totalPages,
-          totalItems: total,
-          itemsPerPage: limit,
-        },
       });
     } catch (error) {
       res.status(500).json({
