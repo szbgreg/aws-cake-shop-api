@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - DB_HOST=mysql
+      - DB_USER=root
+      - DB_PASS=rootpassword
+      - DB_NAME=cukraszda_x665hd
+      - JWT_SECRET=lkjahsdi324adskhbkjh2342kjh4kj23h4k2j34h
+      - PORT=3001
+    depends_on:
+      - mysql
+    networks:
+      - cake-shop-network
+
+  mysql:
+    image: mysql:8.0
+    environment:
+      - MYSQL_ROOT_PASSWORD=rootpassword
+      - MYSQL_DATABASE=cukraszda_x665hd
+      - MYSQL_USER=x665hd
+      - MYSQL_PASSWORD=t9p3W8nH
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./database:/docker-entrypoint-initdb.d
+    networks:
+      - cake-shop-network
+    command: --default-authentication-plugin=mysql_native_password
+
+volumes:
+  mysql_data:
+
+networks:
+  cake-shop-network:
+    driver: bridge

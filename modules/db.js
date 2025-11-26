@@ -1,34 +1,42 @@
-const mysql2 = require('mysql2');
+const mysql = require('mysql2');
 require('dotenv').config();
 
-const connection = mysql2.createConnection({
-    host: 'localhost',
-    user: process.env.DB_USER,
-    password: process.env.DB_PASS,
-    database: process.env.DB_NAME,
+// Connection pool létrehozása connection helyett
+const pool = mysql.createPool({
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASS,
+  database: process.env.DB_NAME,
+  port: process.env.DB_PORT || 3306,
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0,
+  acquireTimeout: 60000,
+  timeout: 60000,
+  reconnect: true,
+  charset: 'utf8mb4'
 });
 
-connection.connect((err) => {
-    if (err) {
-        console.error('Connection failed: ' + err.stack);
-        return;
-    }
-    console.log('Connected. ' + connection.threadId);
-});
-
-const query = (sql = '') => {
-    return new Promise((resolve, reject) => {
-        connection.query(sql, (err, rows) => {
-            if (err) {
-                reject(err);
-            } else {
-                resolve(rows);
-            }
-        });
+const query = (sql, params = []) => {
+  return new Promise((resolve, reject) => {
+    pool.execute(sql, params, (error, results) => {
+      if (error) {
+        console.error("Database query error:", error);
+        reject(error);
+      } else {
+        resolve(results);
+      }
     });
+  });
 };
 
-module.exports = {
-    connection,
-    query,
-};
+// Graceful shutdown
+process.on('SIGINT', () => {
+  console.log('Closing database pool...');
+  pool.end(() => {
+    console.log('Database pool closed.');
+    process.exit(0);
+  });
+});
+
+module.exports = { query };
